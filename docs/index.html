@@ -13,7 +13,6 @@
     }
 
     .container {
-      max-width: 480px;
       margin: 0 auto;
       padding: 1em;
       text-align: center;
@@ -71,18 +70,18 @@
     /* --------------------------------------------------------------
        拡大表示モード
        -------------------------------------------------------------- */
-
     html,
     body {
-      height: 100%;
+      height: 100vh;
+      width: 100vw;
     }
 
     .large-display .container {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
+      min-height: 100vh;
+      min-width: 100vw;
       margin: 0;
       padding: 0;
       display: flex;
@@ -90,20 +89,23 @@
       justify-content: center;
       align-items: center;
       box-sizing: border-box;
+      overflow: hidden;
     }
 
     .large-display #clock {
-      font-size: 20vw;
+      font-size: 15vmin;
+      white-space: nowrap;
+      line-height: 1;
       margin: 0;
     }
 
     .large-display #offsetStatus {
-      font-size: 4vw;
+      font-size: 4vmin;
       margin: 0.5em 0;
     }
 
     .large-display #toggleSizeButton {
-      font-size: 4vw;
+      font-size: 4vmin;
       margin-top: 1em;
     }
 
@@ -148,6 +150,7 @@
       <div class="form-group">
         <textarea id="url" rows="2" readonly></textarea>
       </div>
+
       <div class="row">
         <button id="copyURLButton">URLをコピー</button>
       </div>
@@ -189,14 +192,14 @@
       const resetOffsetTotalMinutes = resetH * 60 + resetM;
 
       let isOffsetTime = false;
-      // (A) 同日内 (start <= reset)
-      // (B) 日付をまたぐ (start > reset)
       if (startOffsetTotalMinutes <= resetOffsetTotalMinutes) {
+        // (A) 同日内 (start <= reset)
         if (currentTotalMinutes >= startOffsetTotalMinutes &&
           currentTotalMinutes < resetOffsetTotalMinutes) {
           isOffsetTime = true;
         }
       } else {
+        // (B) 日付をまたぐ (start > reset)
         if (currentTotalMinutes >= startOffsetTotalMinutes ||
           currentTotalMinutes < resetOffsetTotalMinutes) {
           isOffsetTime = true;
