@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>My Time Zone</title>
   <style>
     body {
@@ -72,163 +72,23 @@
       margin-top: 1em;
     }
   </style>
-  <script>
-    const parseHHMM = (timeString) => {
-      if (!timeString || !timeString.includes(':')) {
-        return [0, 0];
-      }
-      const [hStr, mStr] = timeString.split(':');
-      const hours = parseInt(hStr, 10);
-      const minutes = parseInt(mStr, 10);
-      return [
-        isNaN(hours) ? 0 : hours,
-        isNaN(minutes) ? 0 : minutes
-      ];
-    };
-
-    const parseHHMMSS = (timeString) => {
-      if (!timeString || !timeString.includes(':')) {
-        return [0, 0, 0];
-      }
-      const parts = timeString.split(':');
-      const h = parseInt(parts[0], 10) || 0;
-      const m = parseInt(parts[1], 10) || 0;
-      const s = parseInt(parts[2], 10) || 0;
-      return [h, m, s];
-    };
-
-    // 表示すべき時刻を計算し, 表示する関数
-    const updateTime = () => {
-      const startOffsetTimeValue = document.getElementById('startOffsetTime').value; // "HH:MM"
-      const resetOffsetTimeValue = document.getElementById('resetOffsetTime').value; // "HH:MM"
-      const offsetTimeValue = document.getElementById('offsetTime').value;           // "HH:MM:SS"
-
-      const [startOffsetHour, startOffsetMinute] = parseHHMM(startOffsetTimeValue);
-      const [resetOffsetHour, resetOffsetMinute] = parseHHMM(resetOffsetTimeValue);
-      const [offsetH, offsetM, offsetS] = parseHHMMSS(offsetTimeValue);
-      const offsetInSeconds = offsetH * 3600 + offsetM * 60 + offsetS;
-
-      const now = new Date();
-      const options = { timeZone: 'Asia/Tokyo', hour12: false };
-      // "en-GB" 形式でローカル時刻（24h表記）を取得
-      const jstString = now.toLocaleString('en-GB', options);
-      const [, timePart] = jstString.split(', ');
-      let [currentHour, currentMinute, currentSecond] = timePart.split(':').map(Number);
-
-      const currentTotalSeconds = currentHour * 3600 + currentMinute * 60 + currentSecond;
-      const currentTotalMinutes = currentHour * 60 + currentMinute;
-      const startOffsetTotalMinutes = startOffsetHour * 60 + startOffsetMinute;
-      const resetOffsetTotalMinutes = resetOffsetHour * 60 + resetOffsetMinute;
-
-      let isOffsetTime = false;
-      // (A) 同日内で完結 (start <= reset)
-      if (startOffsetTotalMinutes <= resetOffsetTotalMinutes) {
-        if (currentTotalMinutes >= startOffsetTotalMinutes &&
-          currentTotalMinutes < resetOffsetTotalMinutes) {
-          isOffsetTime = true;
-        }
-      }
-      // (B) 日付をまたぐ (start > reset)
-      else {
-        if (currentTotalMinutes >= startOffsetTotalMinutes ||
-          currentTotalMinutes < resetOffsetTotalMinutes) {
-          isOffsetTime = true;
-        }
-      }
-
-      let displayTotalSeconds = currentTotalSeconds;
-      // オフセットが有効な時間帯であれば加算
-      if (isOffsetTime) {
-        displayTotalSeconds += offsetInSeconds;
-      }
-
-      // 24時間（86400秒）で一周させる
-      displayTotalSeconds = (displayTotalSeconds % 86400 + 86400) % 86400;
-
-      const dispHour = Math.floor(displayTotalSeconds / 3600);
-      const dispMinute = Math.floor((displayTotalSeconds % 3600) / 60);
-      const dispSecond = displayTotalSeconds % 60;
-      const hh = String(dispHour).padStart(2, '0');
-      const mm = String(dispMinute).padStart(2, '0');
-      const ss = String(dispSecond).padStart(2, '0');
-
-      document.getElementById('clock').textContent = `${hh}:${mm}:${ss}`;
-      // オフセット状態のテキスト更新
-      document.getElementById('offsetStatus').textContent =
-        isOffsetTime ? `シフト中：日本時間 + ${offsetTimeValue}` : 'シフトなし';
-    };
-
-    const loadParamsFromURL = () => {
-      const params = new URLSearchParams(window.location.search);
-      const startParam = params.get('start');
-      const resetParam = params.get('reset');
-      const offsetParam = params.get('offset');
-      if (startParam) {
-        document.getElementById('startOffsetTime').value = startParam;
-      }
-      if (resetParam) {
-        document.getElementById('resetOffsetTime').value = resetParam;
-      }
-      if (offsetParam) {
-        document.getElementById('offsetTime').value = offsetParam;
-      }
-    };
-
-    const updateURL = () => {
-      const startOffsetTimeValue = document.getElementById('startOffsetTime').value;
-      const resetOffsetTimeValue = document.getElementById('resetOffsetTime').value;
-      const offsetTimeValue = document.getElementById('offsetTime').value;
-
-      const params = new URLSearchParams();
-      params.set('start', startOffsetTimeValue);
-      params.set('reset', resetOffsetTimeValue);
-      params.set('offset', offsetTimeValue);
-
-      const newUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-      document.getElementById('url').value = newUrl;
-      history.replaceState({}, '', newUrl);
-      updateTime();
-    };
-
-    // URLをクリップボードにコピーする
-    const copyURL = () => {
-      const urlField = document.getElementById('url');
-      urlField.select();
-      urlField.setSelectionRange(0, 99999); // for mobile devices
-      document.execCommand('copy');
-      alert('URLをコピーしました');
-    };
-
-    window.addEventListener('DOMContentLoaded', () => {
-      loadParamsFromURL();
-      updateTime();
-      setInterval(updateTime, 1000);
-    });
-  </script>
 </head>
 
 <body>
   <div class="container">
-    <!-- 現在の時刻を表示する部分 -->
     <div id="clock"></div>
+    <div id="offsetStatus">シフトなし</div>
 
-    <!-- オフセット状態を表示する部分 -->
-    <div id="offsetStatus">シフト：日本時間+0</div>
-
-
-    <!-- オフセット開始時刻 (HH:MM) -->
     <div class="form-group">
       <label for="startOffsetTime">開始 (HH:MM)</label>
       <input type="time" id="startOffsetTime" value="15:00">
     </div>
 
-    <!-- オフセット解除時刻 (HH:MM) -->
     <div class="form-group">
       <label for="resetOffsetTime">解除 (HH:MM)</label>
       <input type="time" id="resetOffsetTime" value="03:00">
     </div>
 
-    <!-- オフセット (HH:MM:SS) -->
     <div class="form-group">
       <label for="offsetTime">ずらす幅 (HH:MM:SS)</label>
       <input type="text" id="offsetTime" value="01:30:00">
@@ -245,16 +105,138 @@
     </div>
 
     <div class="row">
-      <button onclick="updateURL()">設定を反映</button>
+      <button id="updateURLButton">設定を反映</button>
     </div>
-
     <div class="form-group">
       <textarea id="url" rows="2" readonly></textarea>
     </div>
     <div class="row">
-      <button onclick="copyURL()">URLをコピー</button>
+      <button id="copyURLButton">URLをコピー</button>
     </div>
   </div>
+
+  <script>
+    // 時刻文字列「HH:MM」をパースして [h, m] の配列を返す
+    const parseHHMM = (timeString) => {
+      if (!timeString || !timeString.includes(':')) return [0, 0];
+      const [h, m] = timeString.split(':').map(num => parseInt(num, 10) || 0);
+      return [h, m];
+    };
+
+    // 時刻文字列「HH:MM:SS」をパースして [h, m, s] の配列を返す
+    const parseHHMMSS = (timeString) => {
+      if (!timeString || !timeString.includes(':')) return [0, 0, 0];
+      const [h, m, s] = timeString.split(':').map(num => parseInt(num, 10) || 0);
+      return [h, m, s];
+    };
+
+    // 時刻を更新して画面に表示する
+    const updateTime = () => {
+      const startOffsetTimeValue = startOffsetTime.value; // "HH:MM"
+      const resetOffsetTimeValue = resetOffsetTime.value; // "HH:MM"
+      const offsetTimeValue = offsetTime.value;      // "HH:MM:SS"
+      const [startH, startM] = parseHHMM(startOffsetTimeValue);
+      const [resetH, resetM] = parseHHMM(resetOffsetTimeValue);
+      const [offsetH, offsetM, offsetS] = parseHHMMSS(offsetTimeValue);
+      const offsetInSeconds = offsetH * 3600 + offsetM * 60 + offsetS;
+
+      const now = new Date();
+      const options = { timeZone: 'Asia/Tokyo', hour12: false };
+      const jstString = now.toLocaleString('en-GB', options);
+      const [, timePart] = jstString.split(', ');
+      let [currentHour, currentMinute, currentSecond] = timePart.split(':').map(Number);
+
+      const currentTotalMinutes = currentHour * 60 + currentMinute;
+      const currentTotalSeconds = currentHour * 3600 + currentMinute * 60 + currentSecond;
+      const startOffsetTotalMinutes = startH * 60 + startM;
+      const resetOffsetTotalMinutes = resetH * 60 + resetM;
+
+      // (A) 同日内で完結 (start <= reset)
+      // (B) 日付をまたぐ (start > reset) で判定
+      let isOffsetTime = false;
+      if (startOffsetTotalMinutes <= resetOffsetTotalMinutes) {
+        if (currentTotalMinutes >= startOffsetTotalMinutes &&
+          currentTotalMinutes < resetOffsetTotalMinutes) {
+          isOffsetTime = true;
+        }
+      } else {
+        if (currentTotalMinutes >= startOffsetTotalMinutes ||
+          currentTotalMinutes < resetOffsetTotalMinutes) {
+          isOffsetTime = true;
+        }
+      }
+
+      let displayTotalSeconds = currentTotalSeconds;
+      if (isOffsetTime) {
+        displayTotalSeconds += offsetInSeconds;
+      }
+      displayTotalSeconds = (displayTotalSeconds % 86400 + 86400) % 86400;
+
+      const dispHour = Math.floor(displayTotalSeconds / 3600);
+      const dispMinute = Math.floor((displayTotalSeconds % 3600) / 60);
+      const dispSecond = displayTotalSeconds % 60;
+      const hh = String(dispHour).padStart(2, '0');
+      const mm = String(dispMinute).padStart(2, '0');
+      const ss = String(dispSecond).padStart(2, '0');
+
+      clock.textContent = `${hh}:${mm}:${ss}`;
+      offsetStatus.textContent = isOffsetTime
+        ? `シフト中：日本時間 + ${offsetTimeValue}`
+        : 'シフトなし';
+    };
+
+    // URLパラメータを読み込み、各入力フォームに反映
+    const loadParamsFromURL = () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('start')) startOffsetTime.value = params.get('start');
+      if (params.has('reset')) resetOffsetTime.value = params.get('reset');
+      if (params.has('offset')) offsetTime.value = params.get('offset');
+    };
+
+    // 入力項目からURLを更新して表示
+    const updateURL = () => {
+      const params = new URLSearchParams();
+      params.set('start', startOffsetTime.value);
+      params.set('reset', resetOffsetTime.value);
+      params.set('offset', offsetTime.value);
+
+      const newUrl = `${window.location.origin}${window.location.pathname}?${params}`;
+      url.value = newUrl;
+      history.replaceState({}, '', newUrl);
+      updateTime();
+    };
+
+    // URLをクリップボードにコピー
+    const copyURL = async () => {
+      try {
+        await navigator.clipboard.writeText(url.value);
+        alert('URLをコピーしました');
+      } catch (err) {
+        console.error('コピーエラー', err);
+      }
+    };
+
+    // DOM読み込み後の初期処理
+    document.addEventListener('DOMContentLoaded', () => {
+      window.startOffsetTime = document.getElementById('startOffsetTime');
+      window.resetOffsetTime = document.getElementById('resetOffsetTime');
+      window.offsetTime = document.getElementById('offsetTime');
+      window.clock = document.getElementById('clock');
+      window.offsetStatus = document.getElementById('offsetStatus');
+      window.url = document.getElementById('url');
+
+      const updateURLButton = document.getElementById('updateURLButton');
+      const copyURLButton = document.getElementById('copyURLButton');
+      updateURLButton.addEventListener('click', updateURL);
+      copyURLButton.addEventListener('click', copyURL);
+
+      loadParamsFromURL();
+      updateTime();
+
+      // 1秒ごとに時刻更新
+      setInterval(updateTime, 1000);
+    });
+  </script>
 </body>
 
 </html>
