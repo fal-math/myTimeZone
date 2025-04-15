@@ -19,8 +19,16 @@
       text-align: center;
     }
 
-    h1 {
-      margin-top: 0;
+    #clock {
+      font-size: 4rem;
+      font-weight: bold;
+      margin: 20pt 0;
+    }
+
+    #offsetStatus {
+      font-size: 1rem;
+      font-weight: bold;
+      margin-bottom: 1em;
     }
 
     .form-group {
@@ -43,22 +51,10 @@
     }
 
     button {
-      padding: 0.5em 1em;
-      font-size: 1rem;
+      padding: 0.5em;
+      font-size: 0.75rem;
       cursor: pointer;
       margin: 0.5em 0.2em;
-    }
-
-    #clock {
-      font-size: 3.5rem;
-      font-weight: bold;
-      margin: 20pt 0;
-    }
-
-    #offsetStatus {
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin-bottom: 1em;
     }
 
     .instruction {
@@ -71,70 +67,111 @@
     .row {
       margin-top: 1em;
     }
+
+    /* --------------------------------------------------------------
+       拡大表示モード
+       -------------------------------------------------------------- */
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    .large-display .container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-sizing: border-box;
+    }
+
+    .large-display #clock {
+      font-size: 20vw;
+      margin: 0;
+    }
+
+    .large-display #offsetStatus {
+      font-size: 4vw;
+      margin: 0.5em 0;
+    }
+
+    .large-display #toggleSizeButton {
+      font-size: 4vw;
+      margin-top: 1em;
+    }
+
+    .large-display .hide-when-large {
+      display: none;
+    }
   </style>
 </head>
 
 <body>
   <div class="container">
-    <div id="clock"></div>
+    <div id="clock">--:--:--</div>
     <div id="offsetStatus">シフトなし</div>
 
-    <div class="form-group">
-      <label for="startOffsetTime">開始 (HH:MM)</label>
-      <input type="time" id="startOffsetTime" value="15:00">
-    </div>
+    <button id="toggleSizeButton">拡大表示切り替え</button>
 
-    <div class="form-group">
-      <label for="resetOffsetTime">解除 (HH:MM)</label>
-      <input type="time" id="resetOffsetTime" value="03:00">
-    </div>
+    <div class="hide-when-large">
+      <div class="form-group">
+        <label for="startOffsetTime">開始 (HH:MM)</label>
+        <input type="time" id="startOffsetTime" value="15:00">
+      </div>
 
-    <div class="form-group">
-      <label for="offsetTime">ずらす幅 (HH:MM:SS)</label>
-      <input type="text" id="offsetTime" value="01:30:00">
-    </div>
+      <div class="form-group">
+        <label for="resetOffsetTime">解除 (HH:MM)</label>
+        <input type="time" id="resetOffsetTime" value="03:00">
+      </div>
 
-    <div class="instruction">
-      <p>
-        シフトが有効になる開始時刻と解除時刻、
-        そしてシフト幅を設定してください。
-      </p>
-      <p>
-        設定後「設定を反映」をクリックすると、URLに反映されます。
-      </p>
-    </div>
+      <div class="form-group">
+        <label for="offsetTime">ずらす幅 (HH:MM:SS)</label>
+        <input type="text" id="offsetTime" value="01:00:00">
+      </div>
 
-    <div class="row">
-      <button id="updateURLButton">設定を反映</button>
-    </div>
-    <div class="form-group">
-      <textarea id="url" rows="2" readonly></textarea>
-    </div>
-    <div class="row">
-      <button id="copyURLButton">URLをコピー</button>
+      <div class="instruction">
+        <p>シフトが有効になる開始時刻と解除時刻、 そしてシフト幅を設定してください。</p>
+        <p>設定後「設定を反映」をクリックすると、URLに反映されます。</p>
+      </div>
+
+      <div class="row">
+        <button id="updateURLButton">設定を反映</button>
+      </div>
+
+      <div class="form-group">
+        <textarea id="url" rows="2" readonly></textarea>
+      </div>
+      <div class="row">
+        <button id="copyURLButton">URLをコピー</button>
+      </div>
     </div>
   </div>
 
   <script>
-    // 時刻文字列「HH:MM」をパースして [h, m] の配列を返す
+    // ========== ツール関数 ==========
     const parseHHMM = (timeString) => {
       if (!timeString || !timeString.includes(':')) return [0, 0];
       const [h, m] = timeString.split(':').map(num => parseInt(num, 10) || 0);
       return [h, m];
     };
-
-    // 時刻文字列「HH:MM:SS」をパースして [h, m, s] の配列を返す
     const parseHHMMSS = (timeString) => {
       if (!timeString || !timeString.includes(':')) return [0, 0, 0];
       const [h, m, s] = timeString.split(':').map(num => parseInt(num, 10) || 0);
       return [h, m, s];
     };
 
-    // 時刻を更新して画面に表示する
+    // ========== メイン処理 ==========
     const updateTime = () => {
-      const startOffsetTimeValue = startOffsetTime.value; // "HH:MM"
-      const resetOffsetTimeValue = resetOffsetTime.value; // "HH:MM"
-      const offsetTimeValue = offsetTime.value;      // "HH:MM:SS"
+      const startOffsetTimeValue = startOffsetTime.value;
+      const resetOffsetTimeValue = resetOffsetTime.value;
+      const offsetTimeValue = offsetTime.value;  // "HH:MM:SS"
       const [startH, startM] = parseHHMM(startOffsetTimeValue);
       const [resetH, resetM] = parseHHMM(resetOffsetTimeValue);
       const [offsetH, offsetM, offsetS] = parseHHMMSS(offsetTimeValue);
@@ -142,7 +179,7 @@
 
       const now = new Date();
       const options = { timeZone: 'Asia/Tokyo', hour12: false };
-      const jstString = now.toLocaleString('en-GB', options);
+      const jstString = now.toLocaleString('en-GB', options);  // "dd/mm/yyyy, HH:MM:SS"
       const [, timePart] = jstString.split(', ');
       let [currentHour, currentMinute, currentSecond] = timePart.split(':').map(Number);
 
@@ -151,9 +188,9 @@
       const startOffsetTotalMinutes = startH * 60 + startM;
       const resetOffsetTotalMinutes = resetH * 60 + resetM;
 
-      // (A) 同日内で完結 (start <= reset)
-      // (B) 日付をまたぐ (start > reset) で判定
       let isOffsetTime = false;
+      // (A) 同日内 (start <= reset)
+      // (B) 日付をまたぐ (start > reset)
       if (startOffsetTotalMinutes <= resetOffsetTotalMinutes) {
         if (currentTotalMinutes >= startOffsetTotalMinutes &&
           currentTotalMinutes < resetOffsetTotalMinutes) {
@@ -185,7 +222,6 @@
         : 'シフトなし';
     };
 
-    // URLパラメータを読み込み、各入力フォームに反映
     const loadParamsFromURL = () => {
       const params = new URLSearchParams(window.location.search);
       if (params.has('start')) startOffsetTime.value = params.get('start');
@@ -193,7 +229,6 @@
       if (params.has('offset')) offsetTime.value = params.get('offset');
     };
 
-    // 入力項目からURLを更新して表示
     const updateURL = () => {
       const params = new URLSearchParams();
       params.set('start', startOffsetTime.value);
@@ -206,7 +241,6 @@
       updateTime();
     };
 
-    // URLをクリップボードにコピー
     const copyURL = async () => {
       try {
         await navigator.clipboard.writeText(url.value);
@@ -216,7 +250,11 @@
       }
     };
 
-    // DOM読み込み後の初期処理
+    // 画面全体拡大表示をトグル
+    const toggleLargeDisplay = () => {
+      document.body.classList.toggle('large-display');
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
       window.startOffsetTime = document.getElementById('startOffsetTime');
       window.resetOffsetTime = document.getElementById('resetOffsetTime');
@@ -227,13 +265,14 @@
 
       const updateURLButton = document.getElementById('updateURLButton');
       const copyURLButton = document.getElementById('copyURLButton');
+      const toggleSizeButton = document.getElementById('toggleSizeButton');
+
       updateURLButton.addEventListener('click', updateURL);
       copyURLButton.addEventListener('click', copyURL);
+      toggleSizeButton.addEventListener('click', toggleLargeDisplay);
 
       loadParamsFromURL();
       updateTime();
-
-      // 1秒ごとに時刻更新
       setInterval(updateTime, 1000);
     });
   </script>
